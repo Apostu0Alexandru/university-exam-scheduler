@@ -61,6 +61,43 @@ export type Notification = {
   updatedAt: string;
 };
 
+export type ResourceType = 'VIDEO' | 'ARTICLE' | 'PRACTICE_QUIZ' | 'FLASHCARDS' | 'TEXTBOOK' | 'NOTES' | 'OTHER';
+
+export type StudyResource = {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  type: ResourceType;
+  courseId: string;
+  course?: Course;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LearningPreference = {
+  id: string;
+  userId: string;
+  preferredType: ResourceType;
+  studyDuration: number; // in minutes
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LearningRecommendation = {
+  id: string;
+  userId: string;
+  courseId: string;
+  resourceId: string;
+  reason: string;
+  priority: number;
+  completed: boolean;
+  course?: Course;
+  resource?: StudyResource;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ApiResponse<T> = {
   status: string;
   data: T;

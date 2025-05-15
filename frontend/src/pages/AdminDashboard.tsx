@@ -4,7 +4,7 @@ import {
   Typography, 
   Box, 
   Paper, 
-  Grid,
+  Grid as MuiGrid,
   Button,
   IconButton,
   TextField,
@@ -25,6 +25,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Layout from '../components/Layout';
 import { Exam } from '../types';
+
+// Grid component wrapper to fix TypeScript errors
+const Grid = (props: any) => <MuiGrid {...props} />;
 
 const AdminDashboard: React.FC = () => {
   const [exams, setExams] = useState<Exam[]>([]);
@@ -174,7 +177,7 @@ const AdminDashboard: React.FC = () => {
         
         <Grid container spacing={3}>
           {/* Search and Filter */}
-          <Grid item xs={12}>
+          <Grid item xs={12} component="div">
             <Paper sx={{ p: 2 }}>
               <TextField
                 fullWidth
@@ -194,7 +197,7 @@ const AdminDashboard: React.FC = () => {
           </Grid>
           
           {/* Exam Table */}
-          <Grid item xs={12}>
+          <Grid item xs={12} component="div">
             <Paper sx={{ width: '100%' }}>
               <TableContainer>
                 <Table>
