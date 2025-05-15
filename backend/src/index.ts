@@ -5,6 +5,8 @@ import morgan from 'morgan';
 import { ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
 import config from './config';
 import userRoutes from './routes/user.routes';
+import studyResourceRoutes from './routes/studyResource.routes';
+import recommendationRoutes from './routes/recommendation.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { attachDatabaseUser } from './middlewares/clerk.middleware';
 
@@ -26,6 +28,8 @@ app.use(attachDatabaseUser);
 
 // Routes
 app.use('/api/users', userRoutes);
+app.use('/api/study-resources', studyResourceRoutes);
+app.use('/api/recommendations', recommendationRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {

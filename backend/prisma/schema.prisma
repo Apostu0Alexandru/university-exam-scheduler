@@ -8,27 +8,31 @@ datasource db {
 }
 
 model User {
-  id                String         @id @default(uuid())
-  clerkId           String         @unique
-  email             String         @unique
-  firstName         String
-  lastName          String
-  role              Role           @default(STUDENT)
-  enrollments       Enrollment[]
-  notifications     Notification[]
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  id                    String                  @id @default(uuid())
+  clerkId               String                  @unique
+  email                 String                  @unique
+  firstName             String
+  lastName              String
+  role                  Role                    @default(STUDENT)
+  enrollments           Enrollment[]
+  notifications         Notification[]
+  learningPreferences   LearningPreference[]
+  recommendations       LearningRecommendation[]
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
 }
 
 model Course {
-  id          String       @id @default(uuid())
-  code        String       @unique
-  name        String
-  department  String
-  enrollments Enrollment[]
-  exams       Exam[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                  String                 @id @default(uuid())
+  code                String                 @unique
+  name                String
+  department          String
+  enrollments         Enrollment[]
+  exams               Exam[]
+  studyResources      StudyResource[]
+  recommendations     LearningRecommendation[]
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
 }
 
 model Enrollment {
@@ -82,6 +86,44 @@ model Notification {
   updatedAt DateTime @updatedAt
 }
 
+model StudyResource {
+  id                 String                 @id @default(uuid())
+  title              String
+  description        String
+  url                String
+  type               ResourceType
+  course             Course                 @relation(fields: [courseId], references: [id])
+  courseId           String
+  recommendations    LearningRecommendation[]
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+}
+
+model LearningPreference {
+  id              String            @id @default(uuid())
+  user            User              @relation(fields: [userId], references: [id])
+  userId          String
+  preferredType   ResourceType
+  studyDuration   Int  // in minutes
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model LearningRecommendation {
+  id               String         @id @default(uuid())
+  user             User           @relation(fields: [userId], references: [id])
+  userId           String
+  course           Course         @relation(fields: [courseId], references: [id])
+  courseId         String
+  resource         StudyResource  @relation(fields: [resourceId], references: [id])
+  resourceId       String
+  reason           String
+  priority         Int            @default(0)
+  completed        Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
 enum Role {
   STUDENT
   ADMIN
@@ -92,4 +134,14 @@ enum ExamStatus {
   CANCELLED
   COMPLETED
   RESCHEDULED
+}
+
+enum ResourceType {
+  VIDEO
+  ARTICLE
+  PRACTICE_QUIZ
+  FLASHCARDS
+  TEXTBOOK
+  NOTES
+  OTHER
 }

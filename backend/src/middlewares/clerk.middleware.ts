@@ -1,14 +1,24 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { ClerkExpressRequireAuth, ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
 import { PrismaClient } from '@prisma/client';
 import { ApiError } from './error.middleware';
 
 const prisma = new PrismaClient();
 
-// Extend Express Request interface to include user property
+// Update the Express Request interface to include auth property from Clerk
 declare global {
   namespace Express {
     interface Request {
+      auth?: {
+        userId?: string;
+        sessionClaims?: {
+          email?: string;
+          firstName?: string;
+          lastName?: string;
+          [key: string]: any;
+        };
+        [key: string]: any;
+      };
       user?: {
         id: string;
         clerkId: string;
@@ -23,7 +33,7 @@ declare global {
 export const requireAuth = ClerkExpressRequireAuth();
 
 // User lookup middleware to attach our database user to the request
-export const attachDatabaseUser = async (req: Request, res: Response, next: NextFunction) => {
+export const attachDatabaseUser: RequestHandler = async (req, res, next) => {
   try {
     if (!req.auth?.userId) {
       return next();
@@ -70,8 +80,8 @@ export const attachDatabaseUser = async (req: Request, res: Response, next: Next
 };
 
 // Role-based authorization middleware
-export const requireRole = (roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+export const requireRole = (roles: string[]): RequestHandler => {
+  return (req, res, next) => {
     if (!req.user) {
       return next(new ApiError(401, 'Authentication required'));
     }
