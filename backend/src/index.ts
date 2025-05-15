@@ -7,6 +7,7 @@ import config from './config';
 import userRoutes from './routes/user.routes';
 import studyResourceRoutes from './routes/studyResource.routes';
 import recommendationRoutes from './routes/recommendation.routes';
+import examRoutes from './routes/exam.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { attachDatabaseUser } from './middlewares/clerk.middleware';
 
@@ -30,6 +31,7 @@ app.use(attachDatabaseUser);
 app.use('/api/users', userRoutes);
 app.use('/api/study-resources', studyResourceRoutes);
 app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/exams', examRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {

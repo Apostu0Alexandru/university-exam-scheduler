@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { User, ApiResponse, StudyResource, LearningRecommendation } from '../types';
+import { User, ApiResponse, StudyResource, LearningRecommendation, Exam } from '../types';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
 
@@ -21,6 +21,42 @@ api.interceptors.request.use(async (config) => {
 // User API
 export const getUserProfile = async (): Promise<ApiResponse<{ user: User }>> => {
   const response = await api.get<ApiResponse<{ user: User }>>('/users/me');
+  return response.data;
+};
+
+// Exam API
+export const getAllExams = async (): Promise<ApiResponse<Exam[]>> => {
+  const response = await api.get<ApiResponse<Exam[]>>('/exams');
+  return response.data;
+};
+
+export const getExamById = async (id: string): Promise<ApiResponse<Exam>> => {
+  const response = await api.get<ApiResponse<Exam>>(`/exams/${id}`);
+  return response.data;
+};
+
+export const getExamsByCourse = async (courseId: string): Promise<ApiResponse<Exam[]>> => {
+  const response = await api.get<ApiResponse<Exam[]>>(`/exams/course/${courseId}`);
+  return response.data;
+};
+
+export const getExamsForUser = async (userId: string): Promise<ApiResponse<Exam[]>> => {
+  const response = await api.get<ApiResponse<Exam[]>>(`/exams/user/${userId}`);
+  return response.data;
+};
+
+export const createExam = async (examData: Partial<Exam>): Promise<ApiResponse<Exam>> => {
+  const response = await api.post<ApiResponse<Exam>>('/exams', examData);
+  return response.data;
+};
+
+export const updateExam = async (id: string, examData: Partial<Exam>): Promise<ApiResponse<Exam>> => {
+  const response = await api.put<ApiResponse<Exam>>(`/exams/${id}`, examData);
+  return response.data;
+};
+
+export const deleteExam = async (id: string): Promise<ApiResponse<{ message: string }>> => {
+  const response = await api.delete<ApiResponse<{ message: string }>>(`/exams/${id}`);
   return response.data;
 };
 

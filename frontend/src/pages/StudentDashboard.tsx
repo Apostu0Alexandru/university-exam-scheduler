@@ -14,6 +14,8 @@ import {
   InputAdornment,
   Tab,
   Tabs,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import { format, parseISO } from 'date-fns';
 import SearchIcon from '@mui/icons-material/Search';
@@ -25,6 +27,7 @@ import { useUser } from '@clerk/clerk-react';
 import Layout from '../components/Layout';
 import StudyRecommendations from '../components/StudyRecommendations';
 import { Exam } from '../types';
+import { getExamsForUser } from '../services/api';
 
 // Grid component wrapper to fix TypeScript errors
 const Grid = (props: any) => <MuiGrid {...props} />;
@@ -56,7 +59,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const StudentDashboard: React.FC = () => {
-  const { user } = useUser();
+  const { user, isLoaded: isUserLoaded } = useUser();
   const [exams, setExams] = useState<Exam[]>([]);
   const [filteredExams, setFilteredExams] = useState<Exam[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -70,66 +73,13 @@ const StudentDashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchExams = async () => {
+      if (!isUserLoaded || !user) return;
+
       try {
-        // In a real application, this would fetch from the API
-        // For demo purposes, we'll use mock data
-        const mockExams: Exam[] = [
-          {
-            id: '1',
-            courseId: '101',
-            course: {
-              id: '101',
-              code: 'CS101',
-              name: 'Introduction to Computer Science',
-              department: 'Computer Science',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            startTime: new Date(2025, 4, 25, 10, 0).toISOString(),
-            endTime: new Date(2025, 4, 25, 12, 0).toISOString(),
-            roomId: 'r1',
-            room: {
-              id: 'r1',
-              building: 'Main Building',
-              number: '101',
-              capacity: 100,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            status: 'SCHEDULED',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          {
-            id: '2',
-            courseId: '102',
-            course: {
-              id: '102',
-              code: 'MATH201',
-              name: 'Calculus II',
-              department: 'Mathematics',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            startTime: new Date(2025, 4, 27, 14, 0).toISOString(),
-            endTime: new Date(2025, 4, 27, 16, 0).toISOString(),
-            roomId: 'r2',
-            room: {
-              id: 'r2',
-              building: 'Science Building',
-              number: '203',
-              capacity: 80,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            status: 'SCHEDULED',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        ];
-        
-        setExams(mockExams);
-        setFilteredExams(mockExams);
+        setIsLoading(true);
+        const response = await getExamsForUser(user.id);
+        setExams(response.data);
+        setFilteredExams(response.data);
         setIsLoading(false);
       } catch (err: any) {
         setError(err.message || 'Failed to fetch exams');
@@ -138,7 +88,7 @@ const StudentDashboard: React.FC = () => {
     };
     
     fetchExams();
-  }, []);
+  }, [user, isUserLoaded]);
 
   useEffect(() => {
     if (searchTerm.trim() === '') {
@@ -173,6 +123,22 @@ const StudentDashboard: React.FC = () => {
 
   const formatTime = (dateString: string) => {
     return format(parseISO(dateString), 'h:mm a');
+  };
+
+  const handleRefresh = async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await getExamsForUser(user.id);
+      setExams(response.data);
+      setFilteredExams(response.data);
+      setIsLoading(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to refresh exams');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -235,16 +201,33 @@ const StudentDashboard: React.FC = () => {
             {/* Exam Cards */}
             <Grid item xs={12} component="div">
               <Paper sx={{ p: 2 }}>
-                <Typography variant="h6" gutterBottom>
-                  Upcoming Exams
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6">
+                    Upcoming Exams
+                  </Typography>
+                  {error && (
+                    <Chip 
+                      label="Refresh" 
+                      color="primary" 
+                      variant="outlined" 
+                      onClick={handleRefresh}
+                      disabled={isLoading}
+                    />
+                  )}
+                </Box>
                 
                 {isLoading ? (
-                  <Typography>Loading exam schedule...</Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                    <CircularProgress />
+                  </Box>
                 ) : error ? (
-                  <Typography color="error">{error}</Typography>
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                  </Alert>
                 ) : filteredExams.length === 0 ? (
-                  <Typography>No exams found.</Typography>
+                  <Alert severity="info">
+                    No exams found. Either you haven't been enrolled in any courses with scheduled exams, or the search filter is too restrictive.
+                  </Alert>
                 ) : (
                   <List>
                     {filteredExams.map((exam, index) => (
