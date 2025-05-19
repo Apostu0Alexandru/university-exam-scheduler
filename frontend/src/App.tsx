@@ -13,6 +13,8 @@ import {
 const StudentDashboard = React.lazy(() => import('./pages/StudentDashboard'));
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
+const CoursesPage = React.lazy(() => import('./pages/CoursesPage'));
+const SchedulePage = React.lazy(() => import('./pages/SchedulePage'));
 
 // Create a Material UI theme
 const theme = createTheme({
@@ -51,8 +53,7 @@ const App: React.FC = () => {
   const clerkPubKey = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY;
 
   if (!clerkPubKey) {
-    console.error("Missing Clerk Publishable Key");
-    return <div>Configuration Error: Clerk Publishable Key is missing</div>;
+    console.warn("Missing Clerk Publishable Key - Authentication features may not work correctly");
   }
 
   return (
@@ -73,6 +74,10 @@ const App: React.FC = () => {
             
             {/* Not found */}
             <Route path="*" element={<NotFound />} />
+            
+            {/* New routes */}
+            <Route path="/courses" element={<CoursesPage />} />
+            <Route path="/schedule" element={<SchedulePage />} />
           </Routes>
         </React.Suspense>
       </Router>

@@ -27,7 +27,7 @@
     "@types/cors": "^2.8.13",
     "@types/express": "^4.17.17",
     "@types/morgan": "^1.9.9",
-    "@types/node": "^18.15.3",
+    "@types/node": "^18.19.100",
     "nodemon": "^2.0.21",
     "prisma": "^6.8.0",
     "ts-node": "^10.9.1",

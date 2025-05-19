@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { User, ApiResponse, StudyResource, LearningRecommendation, Exam } from '../types';
+import { Clerk } from '@clerk/clerk-js';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
 
@@ -13,8 +14,12 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use(async (config) => {
-  // The Clerk token is typically handled by the frontend SDK
-  // The accessToken will be sent to your backend and validated there
+  // Clerk is attached to window in browser
+  const token = window.Clerk && (await window.Clerk.session?.getToken());
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
   return config;
 });
 
@@ -95,6 +100,52 @@ export const markRecommendationCompleted = async (id: string, completed: boolean
 export const generateRecommendationsForUser = async (userId: string): Promise<ApiResponse<LearningRecommendation[]>> => {
   const response = await api.post<ApiResponse<LearningRecommendation[]>>(`/recommendations/generate/${userId}`);
   return response.data;
+};
+
+export const getAllCourses = async () => {
+  const response = await api.get('/courses');
+  // If your backend returns { status, data: { courses } }
+  return { data: response.data.data.courses };
+};
+
+// Enrollment API
+export const getUserEnrollments = async (userId: string) => {
+  const response = await api.get(`/enrollments/user/${userId}`);
+  return { data: response.data.data };
+};
+
+export const getAvailableCourses = async () => {
+  const response = await api.get('/enrollments/available-courses');
+  return { data: response.data.data };
+};
+
+export const enrollUserInCourse = async (userId: string, courseId: string, semester: string) => {
+  const response = await api.post(`/enrollments/user/${userId}`, { courseId, semester });
+  return { data: response.data.data };
+};
+
+export const unenrollUserFromCourse = async (enrollmentId: string) => {
+  const response = await api.delete(`/enrollments/${enrollmentId}`);
+  return { data: response.data };
+};
+
+// Learning Preferences API
+export const getUserLearningPreferences = async (userId: string) => {
+  const response = await api.get(`/learning-preferences/user/${userId}`);
+  return { data: response.data.data };
+};
+
+export const updateLearningPreference = async (userId: string, preferredType: string, studyDuration?: number) => {
+  const response = await api.post(`/learning-preferences/user/${userId}`, {
+    preferredType,
+    studyDuration
+  });
+  return { data: response.data.data };
+};
+
+export const deleteLearningPreference = async (preferenceId: string) => {
+  const response = await api.delete(`/learning-preferences/${preferenceId}`);
+  return { data: response.data };
 };
 
 export default api;

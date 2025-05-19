@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import prisma from '../lib/prisma';
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 import { ApiError } from '../middlewares/error.middleware';
 
 export const createCourse = async (req: Request, res: Response, next: NextFunction) => {

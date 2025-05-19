@@ -8,6 +8,9 @@ import userRoutes from './routes/user.routes';
 import studyResourceRoutes from './routes/studyResource.routes';
 import recommendationRoutes from './routes/recommendation.routes';
 import examRoutes from './routes/exam.routes';
+import courseRoutes from './routes/course.routes';
+import enrollmentRoutes from './routes/enrollment.routes';
+import learningPreferenceRoutes from './routes/learningPreference.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { attachDatabaseUser } from './middlewares/clerk.middleware';
 
@@ -15,9 +18,13 @@ import { attachDatabaseUser } from './middlewares/clerk.middleware';
 const app = express();
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(cors({
-  origin: config.corsOrigin,
+  origin: '*', // Allow all origins in development
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
 app.use(express.json());
@@ -32,6 +39,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/study-resources', studyResourceRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/exams', examRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/enrollments', enrollmentRoutes);
+app.use('/api/learning-preferences', learningPreferenceRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {

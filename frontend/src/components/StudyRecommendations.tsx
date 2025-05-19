@@ -42,39 +42,30 @@ const StudyRecommendations: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchRecommendations = async () => {
-      if (!isUserLoaded || !user) return;
-      
-      try {
-        setIsLoading(true);
-        const response = await getUserRecommendations(user.id);
-        setRecommendations(response.data);
-        setIsLoading(false);
-      } catch (err: any) {
-        setError(err.message || 'Failed to fetch recommendations');
-        setIsLoading(false);
-      }
-    };
+  const fetchRecommendations = async () => {
+    if (!isUserLoaded || !user) return;
+    try {
+      setIsLoading(true);
+      const response = await getUserRecommendations(user.id);
+      setRecommendations(response.data);
+      setIsLoading(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch recommendations');
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchRecommendations();
+    // eslint-disable-next-line
   }, [user, isUserLoaded]);
 
   const handleGenerateRecommendations = async () => {
     if (!user) return;
-    
     try {
       setIsGenerating(true);
-      const response = await generateRecommendationsForUser(user.id);
-      
-      // Merge new recommendations with existing ones
-      const newRecommendations = response.data;
-      setRecommendations(prev => {
-        const existingIds = new Set(prev.map(r => r.id));
-        const uniqueNewRecs = newRecommendations.filter(r => !existingIds.has(r.id));
-        return [...prev, ...uniqueNewRecs];
-      });
-      
+      await generateRecommendationsForUser(user.id);
+      await fetchRecommendations();
       setIsGenerating(false);
     } catch (err: any) {
       setError(err.message || 'Failed to generate recommendations');
@@ -150,13 +141,13 @@ const StudyRecommendations: React.FC = () => {
           onClick={handleGenerateRecommendations}
           disabled={isGenerating}
         >
-          {isGenerating ? 'Generating...' : 'Get New Recommendations'}
+          {isGenerating ? 'Generating...' : 'Generate Recommendations'}
         </Button>
       </Box>
 
       {recommendations.length === 0 ? (
         <Typography color="textSecondary">
-          No study recommendations available. Click "Get New Recommendations" to generate some.
+          No study recommendations available. Click "Generate Recommendations" to generate some.
         </Typography>
       ) : (
         <List>

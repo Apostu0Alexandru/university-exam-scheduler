@@ -23,9 +23,12 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import SchoolIcon from '@mui/icons-material/School';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { useUser } from '@clerk/clerk-react';
 import Layout from '../components/Layout';
 import StudyRecommendations from '../components/StudyRecommendations';
+import CourseEnrollment from '../components/CourseEnrollment';
+import LearningPreferences from '../components/LearningPreferences';
 import { Exam } from '../types';
 import { getExamsForUser } from '../services/api';
 
@@ -173,13 +176,27 @@ const StudentDashboard: React.FC = () => {
               id="dashboard-tab-1" 
               aria-controls="dashboard-tabpanel-1" 
             />
+            <Tab 
+              icon={<SchoolIcon />} 
+              iconPosition="start" 
+              label="Course Enrollment" 
+              id="dashboard-tab-2" 
+              aria-controls="dashboard-tabpanel-2" 
+            />
+            <Tab 
+              icon={<HelpOutlineIcon />} 
+              iconPosition="start" 
+              label="Learning Preferences" 
+              id="dashboard-tab-3" 
+              aria-controls="dashboard-tabpanel-3" 
+            />
           </Tabs>
         </Box>
         
         <TabPanel value={tabValue} index={0}>
           <Grid container spacing={3}>
             {/* Search and Filter */}
-            <Grid item xs={12} component="div">
+            <Grid sx={{ gridColumn: 'span 12' }} component="div">
               <Paper sx={{ p: 2 }}>
                 <TextField
                   fullWidth
@@ -199,7 +216,7 @@ const StudentDashboard: React.FC = () => {
             </Grid>
             
             {/* Exam Cards */}
-            <Grid item xs={12} component="div">
+            <Grid sx={{ gridColumn: 'span 12' }} component="div">
               <Paper sx={{ p: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Typography variant="h6">
@@ -280,6 +297,14 @@ const StudentDashboard: React.FC = () => {
         
         <TabPanel value={tabValue} index={1}>
           <StudyRecommendations />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={2}>
+          <CourseEnrollment />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={3}>
+          <LearningPreferences />
         </TabPanel>
       </Container>
     </Layout>

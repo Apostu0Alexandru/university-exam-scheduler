@@ -25,6 +25,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Layout from '../components/Layout';
 import { Exam } from '../types';
+import { getAllExams } from '../services/api';
 
 // Grid component wrapper to fix TypeScript errors
 const Grid = (props: any) => <MuiGrid {...props} />;
@@ -41,72 +42,16 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     const fetchExams = async () => {
       try {
-        // In a real application, this would fetch from the API
-        // For demo purposes, we'll use mock data
-        const mockExams: Exam[] = [
-          {
-            id: '1',
-            courseId: '101',
-            course: {
-              id: '101',
-              code: 'CS101',
-              name: 'Introduction to Computer Science',
-              department: 'Computer Science',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            startTime: new Date(2025, 4, 25, 10, 0).toISOString(),
-            endTime: new Date(2025, 4, 25, 12, 0).toISOString(),
-            roomId: 'r1',
-            room: {
-              id: 'r1',
-              building: 'Main Building',
-              number: '101',
-              capacity: 100,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            status: 'SCHEDULED',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          {
-            id: '2',
-            courseId: '102',
-            course: {
-              id: '102',
-              code: 'MATH201',
-              name: 'Calculus II',
-              department: 'Mathematics',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            startTime: new Date(2025, 4, 27, 14, 0).toISOString(),
-            endTime: new Date(2025, 4, 27, 16, 0).toISOString(),
-            roomId: 'r2',
-            room: {
-              id: 'r2',
-              building: 'Science Building',
-              number: '203',
-              capacity: 80,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            status: 'SCHEDULED',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        ];
-        
-        setExams(mockExams);
-        setFilteredExams(mockExams);
+        setIsLoading(true);
+        const response = await getAllExams();
+        setExams(response.data);
+        setFilteredExams(response.data);
         setIsLoading(false);
       } catch (err: any) {
         setError(err.message || 'Failed to fetch exams');
         setIsLoading(false);
       }
     };
-    
     fetchExams();
   }, []);
 
@@ -248,30 +193,17 @@ const AdminDashboard: React.FC = () => {
                               {formatTime(exam.startTime)} - {formatTime(exam.endTime)}
                             </TableCell>
                             <TableCell>
-                              {exam.room 
-                                ? `${exam.room.building}, Room ${exam.room.number}`
-                                : 'Not assigned'}
+                              {exam.room ? `${exam.room.building}, Room ${exam.room.number}` : 'Location TBD'}
                             </TableCell>
                             <TableCell>
-                              <Chip 
-                                label={exam.status} 
-                                color={getStatusColor(exam.status) as any}
-                                size="small"
-                              />
+                              <Chip label={exam.status} color={getStatusColor(exam.status) as any} size="small" />
                             </TableCell>
                             <TableCell align="right">
-                              <IconButton 
-                                size="small" 
-                                onClick={() => {/* Handle edit */}}
-                              >
-                                <EditIcon fontSize="small" />
+                              <IconButton color="primary" size="small" onClick={() => {/* Handle edit */}}>
+                                <EditIcon />
                               </IconButton>
-                              <IconButton 
-                                size="small" 
-                                color="error"
-                                onClick={() => {/* Handle delete */}}
-                              >
-                                <DeleteIcon fontSize="small" />
+                              <IconButton color="error" size="small" onClick={() => {/* Handle delete */}}>
+                                <DeleteIcon />
                               </IconButton>
                             </TableCell>
                           </TableRow>
