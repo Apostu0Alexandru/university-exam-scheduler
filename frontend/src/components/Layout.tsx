@@ -66,7 +66,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title = 'Dashboard' }) => {
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
-          <ListItemButton>
+          <ListItemButton onClick={() => navigate('/schedule')}>
             <ListItemIcon>
               <CalendarMonthIcon />
             </ListItemIcon>
@@ -74,7 +74,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title = 'Dashboard' }) => {
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
-          <ListItemButton>
+          <ListItemButton onClick={() => navigate('/courses')}>
             <ListItemIcon>
               <SchoolIcon />
             </ListItemIcon>

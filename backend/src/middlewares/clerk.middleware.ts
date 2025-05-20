@@ -1,14 +1,25 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { ClerkExpressRequireAuth, ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
+import Clerk from '@clerk/clerk-sdk-node';
 import { PrismaClient } from '@prisma/client';
 import { ApiError } from './error.middleware';
 
 const prisma = new PrismaClient();
 
-// Extend Express Request interface to include user property
+// Update the Express Request interface to include auth property from Clerk
 declare global {
   namespace Express {
     interface Request {
+      auth?: {
+        userId?: string;
+        sessionClaims?: {
+          email?: string;
+          firstName?: string;
+          lastName?: string;
+          [key: string]: any;
+        };
+        [key: string]: any;
+      };
       user?: {
         id: string;
         clerkId: string;
@@ -23,55 +34,62 @@ declare global {
 export const requireAuth = ClerkExpressRequireAuth();
 
 // User lookup middleware to attach our database user to the request
-export const attachDatabaseUser = async (req: Request, res: Response, next: NextFunction) => {
+export const attachDatabaseUser: RequestHandler = async (req, res, next) => {
   try {
+    console.log('attachDatabaseUser:', req.auth);
+
     if (!req.auth?.userId) {
+      console.log('No Clerk userId found');
       return next();
     }
 
     const clerkId = req.auth.userId;
-    
-    // Find or create user in our database
     let user = await prisma.user.findUnique({
       where: { clerkId },
     });
-    
-    if (!user && req.auth.sessionClaims?.email) {
-      // Create a new user with data from Clerk
-      const firstName = req.auth.sessionClaims.firstName as string || '';
-      const lastName = req.auth.sessionClaims.lastName as string || '';
-      const email = req.auth.sessionClaims.email as string;
-      
+    console.log('User found in DB:', user);
+
+    if (!user) {
+      // Fetch user info from Clerk
+      const clerkUser = await Clerk.users.getUser(clerkId);
+      console.log('Fetched Clerk user:', clerkUser);
+
+      const email = clerkUser.emailAddresses?.[0]?.emailAddress || '';
+      const firstName = clerkUser.firstName || '';
+      const lastName = clerkUser.lastName || '';
+
       user = await prisma.user.create({
         data: {
           clerkId,
           email,
           firstName,
           lastName,
-          role: 'STUDENT', // Default role
+          role: 'STUDENT',
         },
       });
+      console.log('Created new user in DB:', user);
     }
-    
+
     if (user) {
-      // Attach user to request
       req.user = {
         id: user.id,
         clerkId: user.clerkId,
         email: user.email,
         role: user.role,
       };
+      console.log('req.user set:', req.user);
     }
-    
+
     next();
   } catch (error) {
+    console.error('Error in attachDatabaseUser:', error);
     next(error);
   }
 };
 
 // Role-based authorization middleware
-export const requireRole = (roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+export const requireRole = (roles: string[]): RequestHandler => {
+  return (req, res, next) => {
     if (!req.user) {
       return next(new ApiError(401, 'Authentication required'));
     }

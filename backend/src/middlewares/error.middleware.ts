@@ -12,22 +12,22 @@ export class ApiError extends Error {
 }
 
 export const errorHandler = (
-  err: Error | ApiError,
+  err: unknown,
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   console.error(err);
   
   if (err instanceof ApiError) {
-    return res.status(err.statusCode).json({
+    res.status(err.statusCode).json({
       status: 'error',
       message: err.message,
     });
+  } else {
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error',
+    });
   }
-
-  return res.status(500).json({
-    status: 'error',
-    message: 'Internal server error',
-  });
 };
