@@ -197,36 +197,82 @@ export const generateRecommendationsForUser = async (req: Request, res: Response
   try {
     const { userId } = req.params;
     
+    console.log('Generating recommendations for user:', userId);
+    
+    // Extract clerkId from userId if it's in the format "user_xxx"
+    const clerkId = userId.startsWith('user_') ? userId : null;
+    console.log('Clerk ID:', clerkId);
+    
     // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        enrollments: {
-          include: {
-            course: true,
+    let user;
+    if (clerkId) {
+      user = await prisma.user.findFirst({
+        where: { clerkId },
+        include: {
+          enrollments: {
+            include: {
+              course: true,
+            },
           },
+          learningPreferences: true,
         },
-        learningPreferences: true,
-      },
-    });
+      });
+      console.log('Found user by clerkId:', user?.id);
+    } else {
+      // Fallback to finding by userId
+      user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          enrollments: {
+            include: {
+              course: true,
+            },
+          },
+          learningPreferences: true,
+        },
+      });
+      console.log('Found user by id:', user?.id);
+    }
     
     if (!user) {
+      console.log('User not found:', userId);
       return res.status(404).json({
         status: 'error',
         message: 'User not found',
+        details: {
+          userId,
+          clerkId,
+          reason: 'No user found with this ID or Clerk ID'
+        }
       });
     }
     
     // Get user preferences
     const preferences = user.learningPreferences;
+    console.log('User preferences:', preferences);
     
     // Default to first preference or VIDEO if none exists
     const preferredType = preferences.length > 0 
       ? preferences[0].preferredType 
       : 'VIDEO';
     
+    console.log('User preferred resource type:', preferredType);
+    
     // Get all enrolled courses
     const enrolledCourseIds = user.enrollments.map(enrollment => enrollment.courseId);
+    console.log('User enrolled courses:', enrolledCourseIds);
+    
+    if (enrolledCourseIds.length === 0) {
+      console.log('User is not enrolled in any courses');
+      return res.status(400).json({
+        status: 'error',
+        message: 'User is not enrolled in any courses. Please enroll in at least one course before generating recommendations.',
+        details: {
+          userId: user.id,
+          enrollments: 0
+        }
+      });
+    }
     
     // Find study resources for enrolled courses
     const studyResources = await prisma.studyResource.findMany({
@@ -240,14 +286,29 @@ export const generateRecommendationsForUser = async (req: Request, res: Response
       },
     });
     
+    console.log(`Found ${studyResources.length} study resources for user's courses`);
+    
+    if (studyResources.length === 0) {
+      console.log('No study resources found for enrolled courses');
+      return res.status(404).json({
+        status: 'error',
+        message: 'No study resources found for your enrolled courses',
+        details: {
+          enrolledCourses: enrolledCourseIds.length,
+          studyResources: 0
+        }
+      });
+    }
+    
     // Get existing recommendations to avoid duplicates
     const existingRecommendations = await prisma.learningRecommendation.findMany({
       where: {
-        userId,
+        userId: user.id,
       },
     });
     
     const existingResourceIds = existingRecommendations.map(rec => rec.resourceId);
+    console.log(`User already has ${existingRecommendations.length} recommendations`);
     
     // Create recommendations based on preferences
     const newRecommendations = [];
@@ -255,6 +316,7 @@ export const generateRecommendationsForUser = async (req: Request, res: Response
     for (const resource of studyResources) {
       // Skip already recommended resources
       if (existingResourceIds.includes(resource.id)) {
+        console.log(`Skipping already recommended resource: ${resource.title}`);
         continue;
       }
       
@@ -266,9 +328,10 @@ export const generateRecommendationsForUser = async (req: Request, res: Response
       }
       
       // Create recommendation
+      console.log(`Creating recommendation for resource: ${resource.title} (${resource.type})`);
       const recommendation = await prisma.learningRecommendation.create({
         data: {
-          userId,
+          userId: user.id,
           courseId: resource.courseId,
           resourceId: resource.id,
           reason: `Recommended based on your enrollment in ${resource.course.name}`,
@@ -280,12 +343,33 @@ export const generateRecommendationsForUser = async (req: Request, res: Response
       newRecommendations.push(recommendation);
     }
     
+    console.log(`Generated ${newRecommendations.length} new recommendations`);
+    
+    if (newRecommendations.length === 0) {
+      return res.json({
+        status: 'success',
+        message: 'No new recommendations created. You already have recommendations for all available resources.',
+        data: []
+      });
+    }
+    
     return res.json({
       status: 'success',
       message: `Generated ${newRecommendations.length} new recommendations`,
       data: newRecommendations,
     });
   } catch (error) {
-    return handleError(error, res);
+    console.error('Error generating recommendations:', error);
+    
+    let message = 'An unknown error occurred while generating recommendations';
+    if (error instanceof Error) {
+      message = error.message;
+    }
+    
+    return res.status(500).json({
+      status: 'error',
+      message,
+      details: error instanceof Error ? { stack: error.stack } : undefined
+    });
   }
 }; 

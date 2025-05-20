@@ -92,6 +92,9 @@ const LearningPreferences: React.FC = () => {
     try {
       setIsSaving(true);
       setError(null);
+      console.log('Saving learning preferences for user:', user.id);
+      console.log('Preferred type:', selectedType);
+      console.log('Study duration:', studyDuration);
       await updateLearningPreference(user.id, selectedType, studyDuration);
       setSuccess('Learning preferences saved successfully');
       await fetchPreferences();
@@ -102,6 +105,7 @@ const LearningPreferences: React.FC = () => {
         setSuccess(null);
       }, 3000);
     } catch (err: any) {
+      console.error('Learning preferences error:', err);
       setError(err.message || 'Failed to save learning preferences');
       setIsSaving(false);
     }

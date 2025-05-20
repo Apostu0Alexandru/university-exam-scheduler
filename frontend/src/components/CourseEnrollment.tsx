@@ -78,9 +78,31 @@ const CourseEnrollment: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchEnrollments();
-    fetchAvailableCourses();
-    // eslint-disable-next-line
+    const fetchData = async () => {
+      if (!isUserLoaded || !user) return;
+      setIsLoading(true);
+      try {
+        const [coursesResponse, enrollmentsResponse] = await Promise.all([
+          getAvailableCourses(),
+          getUserEnrollments(user.id),
+        ]);
+        setEnrollments(enrollmentsResponse.data || []);
+        setAvailableCourses(coursesResponse.data || []);
+        
+        // Debug info
+        console.log('Courses:', coursesResponse.data);
+        console.log('Enrollments:', enrollmentsResponse.data);
+        console.log('User ID:', user.id);
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError('Failed to load courses or enrollments');
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
   }, [user, isUserLoaded]);
 
   const handleEnrollModalOpen = () => {
@@ -93,26 +115,46 @@ const CourseEnrollment: React.FC = () => {
   };
 
   const handleEnroll = async () => {
-    if (!user || !selectedCourse) return;
+    if (!selectedCourse || !selectedSemester) {
+      setError('Please select a course and semester');
+      return;
+    }
+    
+    if (!user) {
+      setError('You must be logged in to enroll in a course');
+      return;
+    }
+    
+    console.log('Attempting to enroll:', {
+      userId: user.id,
+      courseId: selectedCourse,
+      semester: selectedSemester
+    });
+    
+    setIsEnrolling(true);
+    
     try {
-      setIsEnrolling(true);
-      await enrollUserInCourse(user.id, selectedCourse, selectedSemester);
+      const result = await enrollUserInCourse(user.id, selectedCourse, selectedSemester);
+      console.log('Enrollment result:', result);
       
-      // Generate recommendations after enrollment
-      try {
-        await generateRecommendationsForUser(user.id);
-      } catch (recErr) {
-        console.error('Failed to generate recommendations:', recErr);
-        // Don't block enrollment if recommendations fail
-      }
+      // Refresh enrollments after enrolling
+      const updatedEnrollments = await getUserEnrollments(user.id);
+      console.log('Updated enrollments:', updatedEnrollments.data);
+      setEnrollments(updatedEnrollments.data || []);
       
-      await fetchEnrollments();
       setSnackbarMessage('Successfully enrolled in course!');
       setSnackbarOpen(true);
       handleEnrollModalClose();
       setIsEnrolling(false);
-    } catch (err: any) {
-      setError(err.message || 'Failed to enroll in course');
+      
+      // Close success message after 3 seconds
+      setTimeout(() => {
+        setSnackbarOpen(false);
+      }, 3000);
+    } catch (error: any) {
+      console.error('Enrollment error:', error);
+      console.error('Error response:', error.response?.data);
+      setError(error.response?.data?.message || 'Failed to enroll in course');
       setIsEnrolling(false);
     }
   };

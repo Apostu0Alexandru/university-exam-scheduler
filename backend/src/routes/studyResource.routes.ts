@@ -5,7 +5,8 @@ import {
   getStudyResourcesByCourse,
   createStudyResource,
   updateStudyResource,
-  deleteStudyResource
+  deleteStudyResource,
+  createSampleResourcesForCourse
 } from '../controllers/studyResource.controller';
 import { requireAuth, requireRole } from '../middlewares/clerk.middleware';
 
@@ -15,6 +16,9 @@ const router = Router();
 router.get('/', getAllStudyResources);
 router.get('/:id', getStudyResourceById);
 router.get('/course/:courseId', getStudyResourcesByCourse);
+
+// Create sample resources for a course (public endpoint for demo)
+router.post('/sample/:courseId', createSampleResourcesForCourse);
 
 // Protected routes (admin only)
 router.post('/', requireAuth, requireRole(['ADMIN']), createStudyResource);

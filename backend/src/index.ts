@@ -4,13 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
 import config from './config';
-import userRoutes from './routes/user.routes';
-import studyResourceRoutes from './routes/studyResource.routes';
-import recommendationRoutes from './routes/recommendation.routes';
-import examRoutes from './routes/exam.routes';
-import courseRoutes from './routes/course.routes';
-import enrollmentRoutes from './routes/enrollment.routes';
-import learningPreferenceRoutes from './routes/learningPreference.routes';
+import apiRoutes from './routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { attachDatabaseUser } from './middlewares/clerk.middleware';
 
@@ -23,30 +17,48 @@ app.use(helmet({
 }));
 app.use(cors({
   origin: '*', // Allow all origins in development
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Clerk authentication middleware
-app.use(ClerkExpressWithAuth());
-app.use(attachDatabaseUser);
-
-// Routes
-app.use('/api/users', userRoutes);
-app.use('/api/study-resources', studyResourceRoutes);
-app.use('/api/recommendations', recommendationRoutes);
-app.use('/api/exams', examRoutes);
-app.use('/api/courses', courseRoutes);
-app.use('/api/enrollments', enrollmentRoutes);
-app.use('/api/learning-preferences', learningPreferenceRoutes);
-
-// Health check route
+// Health check route (before auth)
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
+
+// Log all incoming requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  
+  if (req.method === 'POST') {
+    console.log('POST Request Body:', req.body);
+  }
+  
+  // Log the response status
+  const originalSend = res.send;
+  res.send = function(body) {
+    console.log(`Response Status for ${req.method} ${req.url}: ${res.statusCode}`);
+    return originalSend.call(this, body);
+  };
+  
+  next();
+});
+
+// Clerk authentication middleware
+app.use((req, res, next) => {
+  // Skip auth for OPTIONS requests (CORS preflight)
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+  return ClerkExpressWithAuth()(req, res, next);
+});
+app.use(attachDatabaseUser);
+
+// Routes - using the combined router from routes/index.ts
+app.use('/api', apiRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
@@ -54,6 +66,7 @@ app.use(errorHandler);
 // Start server
 app.listen(config.port, () => {
   console.log(`Server running on port ${config.port} in ${config.nodeEnv} mode`);
+  console.log(`Server allows CORS from origin: *`);
 });
 
 export default app;

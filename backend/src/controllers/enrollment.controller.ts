@@ -33,24 +33,61 @@ export const enrollUserInCourse = async (req: Request, res: Response) => {
     const { userId } = req.params;
     const { courseId, semester } = req.body;
     
-    if (!courseId || !semester) {
+    console.log('Enrollment attempt:', { userId, courseId, semester });
+    console.log('Request params:', req.params);
+    console.log('Request body:', req.body);
+    
+    // Validate required fields
+    if (!courseId) {
       return res.status(400).json({
         status: 'error',
-        message: 'Course ID and semester are required',
+        message: 'Course ID is required',
+        details: { received: { courseId } }
       });
     }
     
-    // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
+    if (!semester) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Semester is required',
+        details: { received: { semester } }
+      });
+    }
+    
+    // Extract clerkId from userId if it's in the format "user_xxx"
+    const clerkId = userId.startsWith('user_') ? userId : null;
+    console.log('Extracted clerk ID:', clerkId);
+    
+    // Check if user exists by clerkId
+    let user;
+    if (clerkId) {
+      user = await prisma.user.findFirst({
+        where: { clerkId },
+      });
+      console.log('Found user by clerkId:', user);
+    } else {
+      // Fallback to finding by userId
+      user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+      console.log('Found user by id:', user);
+    }
     
     if (!user) {
       return res.status(404).json({
         status: 'error',
         message: 'User not found',
+        details: {
+          userId,
+          clerkId,
+          reason: 'No user found with this ID or Clerk ID'
+        }
       });
     }
+    
+    // Use the actual database user.id
+    const dbUserId = user.id;
+    console.log('Using database user ID:', dbUserId);
     
     // Check if course exists
     const course = await prisma.course.findUnique({
@@ -61,29 +98,39 @@ export const enrollUserInCourse = async (req: Request, res: Response) => {
       return res.status(404).json({
         status: 'error',
         message: 'Course not found',
+        details: { courseId }
       });
     }
+    
+    console.log('Found course:', course.name);
     
     // Check if enrollment already exists
     const existingEnrollment = await prisma.enrollment.findFirst({
       where: {
-        userId,
+        userId: dbUserId, 
         courseId,
         semester,
       },
     });
     
     if (existingEnrollment) {
+      console.log('User already enrolled in this course:', existingEnrollment);
       return res.status(400).json({
         status: 'error',
         message: 'User is already enrolled in this course for the specified semester',
+        details: {
+          userId: dbUserId,
+          courseId,
+          semester,
+          enrollmentId: existingEnrollment.id
+        }
       });
     }
     
     // Create the enrollment
     const enrollment = await prisma.enrollment.create({
       data: {
-        userId,
+        userId: dbUserId,
         courseId,
         semester,
       },
@@ -92,14 +139,34 @@ export const enrollUserInCourse = async (req: Request, res: Response) => {
       },
     });
     
+    console.log('Created enrollment:', enrollment);
+    
     return res.status(201).json({
       status: 'success',
       data: enrollment,
     });
   } catch (error) {
-    return res.status(500).json({
+    console.error('Error in enrollUserInCourse:', error);
+    let errorMessage = 'An unknown error occurred';
+    let statusCode = 500;
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      // Handle common Prisma errors
+      if (error.message.includes('foreign key constraint')) {
+        errorMessage = 'Invalid user ID or course ID';
+        statusCode = 400;
+      } else if (error.message.includes('Unique constraint')) {
+        errorMessage = 'User is already enrolled in this course for the specified semester';
+        statusCode = 400;
+      }
+    }
+    
+    return res.status(statusCode).json({
       status: 'error',
-      message: error instanceof Error ? error.message : 'An unknown error occurred',
+      message: errorMessage,
+      details: error instanceof Error ? { stack: error.stack } : undefined
     });
   }
 };

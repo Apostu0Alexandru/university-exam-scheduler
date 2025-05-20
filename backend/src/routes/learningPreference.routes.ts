@@ -4,17 +4,16 @@ import {
   updateLearningPreference,
   deleteLearningPreference
 } from '../controllers/learningPreference.controller';
-import { requireAuth } from '../middlewares/clerk.middleware';
 
 const router = Router();
 
 // Get learning preferences for a user
-router.get('/user/:userId', requireAuth, getUserLearningPreferences);
+router.get('/user/:userId', getUserLearningPreferences);
 
 // Create or update learning preference
-router.post('/user/:userId', requireAuth, updateLearningPreference);
+router.post('/user/:userId', updateLearningPreference);
 
 // Delete learning preference
-router.delete('/:preferenceId', requireAuth, deleteLearningPreference);
+router.delete('/:preferenceId', deleteLearningPreference);
 
 export default router; 

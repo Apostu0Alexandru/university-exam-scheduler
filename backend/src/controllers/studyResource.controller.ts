@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ResourceType } from '@prisma/client';
 import { handleError } from '../utils/errorHandler';
 
 const prisma = new PrismaClient();
@@ -187,6 +187,67 @@ export const deleteStudyResource = async (req: Request, res: Response) => {
       message: 'Study resource deleted successfully',
     });
   } catch (error) {
+    return handleError(error, res);
+  }
+};
+
+// Create sample study resources for a course
+export const createSampleResourcesForCourse = async (req: Request, res: Response) => {
+  try {
+    const { courseId } = req.params;
+    
+    console.log('Creating sample resources for course:', courseId);
+    
+    // Check if course exists
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+    });
+    
+    if (!course) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Course not found',
+      });
+    }
+    
+    // Define resource types to create
+    const resourceTypes: ResourceType[] = ['VIDEO', 'ARTICLE', 'PRACTICE_QUIZ', 'TEXTBOOK', 'NOTES'];
+    const createdResources = [];
+    
+    // Create one resource of each type for the course
+    for (const type of resourceTypes) {
+      // Check if resource of this type already exists for the course
+      const existingResource = await prisma.studyResource.findFirst({
+        where: {
+          courseId,
+          type,
+        },
+      });
+      
+      if (!existingResource) {
+        const resource = await prisma.studyResource.create({
+          data: {
+            title: `${type} for ${course.code}`,
+            description: `A ${type.toLowerCase()} resource for ${course.name}`,
+            url: `https://university.edu/resources/${course.code}/${type.toLowerCase()}`,
+            type,
+            courseId,
+          },
+        });
+        console.log(`Created ${type} resource for course ${course.code}`);
+        createdResources.push(resource);
+      } else {
+        console.log(`${type} resource already exists for course ${course.code}`);
+      }
+    }
+    
+    return res.status(201).json({
+      status: 'success',
+      message: `Created ${createdResources.length} sample resources for course ${course.code}`,
+      data: createdResources,
+    });
+  } catch (error) {
+    console.error('Error creating sample resources:', error);
     return handleError(error, res);
   }
 }; 

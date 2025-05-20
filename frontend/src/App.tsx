@@ -32,6 +32,21 @@ const theme = createTheme({
 const Loading = () => <div>Loading...</div>;
 
 // Protected route wrapper using Clerk hooks instead of components
+const ProtectedRoute: React.FC<{element: React.ReactElement}> = ({ element }) => {
+  const { isLoaded, isSignedIn } = useUser();
+  
+  if (!isLoaded) return <Loading />;
+  
+  // If not signed in, redirect to sign in page
+  if (!isSignedIn) {
+    return <RedirectToSignIn />;
+  }
+  
+  // User is signed in, show the requested component
+  return element;
+};
+
+// Protected route wrapper specifically for dashboard
 const ProtectedDashboardRoute: React.FC = () => {
   const { user, isLoaded, isSignedIn } = useUser();
   
@@ -75,9 +90,9 @@ const App: React.FC = () => {
             {/* Not found */}
             <Route path="*" element={<NotFound />} />
             
-            {/* New routes */}
-            <Route path="/courses" element={<CoursesPage />} />
-            <Route path="/schedule" element={<SchedulePage />} />
+            {/* Protected routes */}
+            <Route path="/courses" element={<ProtectedRoute element={<CoursesPage />} />} />
+            <Route path="/schedule" element={<ProtectedRoute element={<SchedulePage />} />} />
           </Routes>
         </React.Suspense>
       </Router>

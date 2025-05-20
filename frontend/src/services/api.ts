@@ -14,14 +14,35 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use(async (config) => {
-  // Clerk is attached to window in browser
-  const token = window.Clerk && (await window.Clerk.session?.getToken());
-  if (token) {
-    config.headers = config.headers || {};
-    config.headers['Authorization'] = `Bearer ${token}`;
+  try {
+    // Clerk is attached to window in browser
+    const token = window.Clerk && (await window.Clerk.session?.getToken());
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers['Authorization'] = `Bearer ${token}`;
+      console.log(`Adding auth token to request: – "${config.url}"`);
+      console.log(`Full URL: ${API_URL}${config.url}`);
+    } else {
+      console.warn('No auth token available for request:', config.url);
+    }
+  } catch (err) {
+    console.error('Error getting auth token:', err);
   }
   return config;
 });
+
+// Add response interceptor for debugging
+api.interceptors.response.use(
+  (response) => {
+    console.log(`Request to ${response.config.url} succeeded: – ${response.status}`);
+    return response;
+  },
+  (error) => {
+    console.error(`Request to ${error.config?.url} failed: – ${error.response?.status} – ${JSON.stringify(error.message)}`);
+    console.error('Error details:', error);
+    return Promise.reject(error);
+  }
+);
 
 // User API
 export const getUserProfile = async (): Promise<ApiResponse<{ user: User }>> => {
@@ -81,6 +102,17 @@ export const getStudyResourceById = async (id: string): Promise<ApiResponse<Stud
   return response.data;
 };
 
+export const createSampleResourcesForCourse = async (courseId: string): Promise<ApiResponse<any>> => {
+  try {
+    console.log(`Creating sample resources for course: ${courseId}`);
+    const response = await api.post<ApiResponse<any>>(`/study-resources/sample/${courseId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating sample resources:', error);
+    throw error;
+  }
+};
+
 // Recommendations API
 export const getUserRecommendations = async (userId: string): Promise<ApiResponse<LearningRecommendation[]>> => {
   const response = await api.get<ApiResponse<LearningRecommendation[]>>(`/recommendations/user/${userId}`);
@@ -102,6 +134,7 @@ export const generateRecommendationsForUser = async (userId: string): Promise<Ap
   return response.data;
 };
 
+// Course API
 export const getAllCourses = async () => {
   const response = await api.get('/courses');
   // If your backend returns { status, data: { courses } }
@@ -120,8 +153,17 @@ export const getAvailableCourses = async () => {
 };
 
 export const enrollUserInCourse = async (userId: string, courseId: string, semester: string) => {
-  const response = await api.post(`/enrollments/user/${userId}`, { courseId, semester });
-  return { data: response.data.data };
+  try {
+    console.log(`Enrolling user ${userId} in course ${courseId} for semester ${semester}`);
+    const response = await api.post(`/enrollments/user/${userId}`, { 
+      courseId, 
+      semester 
+    });
+    return { data: response.data.data };
+  } catch (error) {
+    console.error('Error in enrollUserInCourse:', error);
+    throw error;
+  }
 };
 
 export const unenrollUserFromCourse = async (enrollmentId: string) => {
@@ -136,11 +178,20 @@ export const getUserLearningPreferences = async (userId: string) => {
 };
 
 export const updateLearningPreference = async (userId: string, preferredType: string, studyDuration?: number) => {
-  const response = await api.post(`/learning-preferences/user/${userId}`, {
-    preferredType,
-    studyDuration
-  });
-  return { data: response.data.data };
+  try {
+    console.log(`Updating learning preferences for user ${userId}`);
+    console.log(`URL: /learning-preferences/user/${userId}`);
+    console.log(`Payload:`, { preferredType, studyDuration });
+    
+    const response = await api.post(`/learning-preferences/user/${userId}`, {
+      preferredType,
+      studyDuration
+    });
+    return { data: response.data.data };
+  } catch (error) {
+    console.error('Error in updateLearningPreference:', error);
+    throw error;
+  }
 };
 
 export const deleteLearningPreference = async (preferenceId: string) => {
